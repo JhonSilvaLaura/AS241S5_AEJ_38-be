@@ -1,42 +1,69 @@
-# AI Cartoon Generator con Spring Boot
+# AI Cartoon Generator API
 
-**Servicio de IA con Rapid API**, AI Cartoon Generator convierte imágenes reales a estilo cartoon/animación usando inteligencia artificial. El proceso es asíncrono: se envía la imagen, se obtiene un `task_id` y luego se consulta el resultado cuando la tarea finaliza. Los resultados se persisten en MongoDB.
+<div align="center">
 
----
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.13-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
+![Java](https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-Reactive-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
+![RapidAPI](https://img.shields.io/badge/RapidAPI-Cartoon%20Generator-0055DA?style=for-the-badge&logo=rapidapi&logoColor=white)
+![WebFlux](https://img.shields.io/badge/Spring%20WebFlux-Reactive-6DB33F?style=for-the-badge&logo=spring&logoColor=white)
 
-## Tecnologías
+Microservicio reactivo que convierte imágenes a estilo cartoon mediante IA usando RapidAPI, construido con Spring WebFlux y persistencia reactiva en MongoDB.
 
-**1. Cognitive Services**
-
-<img src="https://wakeupandcode.com/wp-content/uploads/2019/08/azure-cognitive-services-bootcamp-event-image.png" align="right" style="width: 200px"/>
-
-- Rapid API — AI Cartoon Generator
-- Conversión de imágenes a estilo cartoon con IA
-- Procesamiento asíncrono mediante `task_id`
-
-**2. Spring Boot**
-
-<img src="https://miro.medium.com/v2/resize:fit:716/1*98O4Gb5HLSlmdUkKg1DP1Q.png" align="right" style="height:60px; width: 200px"/>
-
-- Java: JDK 21
-- IDE: IntelliJ IDEA | Visual Studio Code | Codespace
-- Maven: Apache Maven
-- Framework: Spring Boot 3.5.13
-
-**3. Maven Dependencias**
-
-<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Apache_Maven_logo.svg/1280px-Apache_Maven_logo.svg.png" align="right" style="width: 200px"/>
-
-- `spring-boot-starter-webflux`
-- `spring-boot-starter-data-mongodb-reactive`
-- `springdoc-openapi-starter-webflux-ui`
-- `spring-dotenv`
-- `lombok`
-- `reactor-test`
+</div>
 
 ---
 
-## Dependencias Spring WebFlux + MongoDB (NoSQL)
+## Tabla de Contenidos
+
+- [Descripción](#descripción)
+- [Stack Tecnológico](#stack-tecnológico)
+- [Dependencias Maven](#dependencias-maven)
+- [Base de Datos](#base-de-datos)
+- [Configuración](#configuración)
+- [Estructura del Proyecto](#estructura-del-proyecto)
+- [Endpoints REST](#endpoints-rest)
+- [Integración RapidAPI](#integración-rapidapi)
+- [Swagger UI](#swagger-ui)
+- [Flujo de Procesamiento](#flujo-de-procesamiento)
+
+---
+
+## Descripción
+
+**AI Cartoon Generator** es un microservicio reactivo que permite subir imágenes (JPEG, PNG, BMP, WEBP) y transformarlas a estilo cartoon usando inteligencia artificial. El proceso es asíncrono: al generar la tarea se retorna un `task_id` con el que se puede consultar el resultado cuando esté listo. Todos los estados se persisten en MongoDB.
+
+Características principales:
+
+- Procesamiento completamente reactivo con Project Reactor
+- Integración con RapidAPI — AI Cartoon Generator
+- Subida de imágenes vía `multipart/form-data`
+- Tarea asíncrona: genera un `task_id` y luego consulta el resultado
+- Persistencia reactiva con Spring Data MongoDB Reactive
+- Soporte para múltiples estilos de cartoon mediante índice numérico
+- Documentación interactiva con Swagger UI
+- Registro de estado por operación (`pending` / `completed` / `failed`)
+
+---
+
+## Stack Tecnológico
+
+| Tecnología             | Versión | Uso                                      |
+|------------------------|---------|------------------------------------------|
+| Java                   | 21      | Lenguaje principal                       |
+| Spring Boot            | 3.5.13  | Framework base                           |
+| Spring WebFlux         | 6.1.x   | API REST reactiva no bloqueante          |
+| Project Reactor        | 3.6.x   | Programación reactiva (Mono / Flux)      |
+| Spring Data MongoDB R. | 3.x     | Acceso reactivo a MongoDB                |
+| Lombok                 | 1.18.x  | Reducción de boilerplate                 |
+| SpringDoc OpenAPI      | 2.8.15  | Documentación Swagger UI                 |
+| spring-dotenv          | 4.0.0   | Carga de variables de entorno            |
+
+---
+
+## Dependencias Maven
+
+### Spring WebFlux + MongoDB Reactivo
 
 ```xml
 <dependency>
@@ -54,7 +81,7 @@
 </dependency>
 ```
 
-## Dependencia Swagger para Spring WebFlux
+### Swagger (SpringDoc para WebFlux)
 
 ```xml
 <dependency>
@@ -64,7 +91,17 @@
 </dependency>
 ```
 
-## Dependencia spring-dotenv (variables de entorno)
+### Lombok
+
+```xml
+<dependency>
+    <groupId>org.projectlombok</groupId>
+    <artifactId>lombok</artifactId>
+    <optional>true</optional>
+</dependency>
+```
+
+### spring-dotenv (Variables de Entorno)
 
 ```xml
 <dependency>
@@ -76,7 +113,67 @@
 
 ---
 
-## Configuración — `application.yaml`
+## Base de Datos
+
+El proyecto usa **MongoDB** con la colección `cartoon`. No requiere SQL ni migraciones; MongoDB crea la colección automáticamente al insertar el primer documento.
+
+### Estructura del documento
+
+```json
+{
+  "_id": "ObjectId",
+  "imageName": "foto.jpg",
+  "cartoonIndex": 1,
+  "taskId": "abc123",
+  "taskType": "async",
+  "requestId": "req_xyz",
+  "logId": "log_xyz",
+  "errorCode": 0,
+  "errorMsg": null,
+  "resultUrl": "https://cdn.rapidapi.com/result.jpg",
+  "taskStatus": 2,
+  "status": "completed",
+  "createdAt": "2026-04-06T10:00:00"
+}
+```
+
+### Descripción de campos
+
+| Campo         | Tipo         | Descripción                                              |
+|---------------|--------------|----------------------------------------------------------|
+| `_id`         | ObjectId     | Identificador único de MongoDB                           |
+| `imageName`   | String       | Nombre del archivo de imagen subido                      |
+| `cartoonIndex`| Integer      | Índice del estilo cartoon seleccionado                   |
+| `taskId`      | String       | ID de tarea retornado por RapidAPI                       |
+| `taskType`    | String       | Tipo de tarea (`async`)                                  |
+| `requestId`   | String       | ID de solicitud retornado por RapidAPI                   |
+| `logId`       | String       | Log ID retornado por RapidAPI                            |
+| `errorCode`   | Integer      | Código de error de la API (`0` = sin error)              |
+| `errorMsg`    | String       | Mensaje de error si el procesamiento falla               |
+| `resultUrl`   | String       | URL de la imagen cartoon generada                        |
+| `taskStatus`  | Integer      | Estado numérico: `0`=queued, `1`=processing, `2`=success |
+| `status`      | String       | Estado legible: `pending` \| `completed` \| `failed`    |
+| `createdAt`   | LocalDateTime| Fecha y hora de creación del registro                    |
+
+---
+
+## Configuración
+
+### 1. Variables de entorno (`.env`)
+
+Crea un archivo `.env` en la raíz del proyecto:
+
+```env
+MONGO_DATABASE=cartoon_db
+MONGO_URI=mongodb+srv://<usuario>:<contraseña>@<cluster>.mongodb.net
+RAPIDAPI_KEY=<tu_api_key>
+RAPIDAPI_HOST=<rapidapi_host>
+RAPIDAPI_BASE_URL=https://<rapidapi_host>
+```
+
+> **Nota:** Nunca subas el archivo `.env` a Git. Agrégalo al `.gitignore`.
+
+### 2. `application.yaml`
 
 ```yaml
 spring:
@@ -94,88 +191,203 @@ rapidapi:
   endpoint-generate: /image/effects/generate_cartoonized_image
   endpoint-result: /api/rapidapi/query-async-task-result
 
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
 server:
-  port: 8080
+  port: 8085
 ```
 
-Las variables sensibles se leen desde un archivo `.env` en la raíz del proyecto.
+### 3. `.gitignore` recomendado
 
+```gitignore
+.env
+target/
+*.class
+*.jar
+.idea/
+*.iml
+```
 
+---
 
-## Flujo de la Aplicación
+## Estructura del Proyecto
 
 ```
-Cliente
-  │
-  ├─► POST /api/cartoon/generate  (imagen + index)
-  │       │
-  │       └─► RapidAPI: genera cartoon (async) → devuelve task_id
-  │               └─► Guarda en MongoDB con status = "pending"
-  │
-  └─► GET /api/cartoon/task/{taskId}
-          │
-          └─► RapidAPI: consulta resultado por task_id
-                  └─► Actualiza MongoDB:
-                        task_status=2  → status = "completed" + result_url
-                        task_status=1  → status = "pending"
-                        task_status=0  → status = "pending" (en cola)
-                        error_code≠0   → status = "failed"
+src/main/java/jhon/silva/cartoon/
+  ├── CartoonApplication.java          # Clase principal
+  ├── Config/
+  │   ├── SwaggerConfig.java           # Configuración OpenAPI
+  │   └── WebClientConfig.java         # WebClient para RapidAPI
+  ├── Model/
+  │   └── CartoonResult.java           # Entidad MongoDB
+  ├── Repository/
+  │   └── CartoonRepository.java       # ReactiveMongoRepository
+  ├── Rest/
+  │   └── CartoonRest.java             # Controlador REST
+  └── Service/
+      ├── ICartoonService.java         # Interfaz del servicio
+      └── impl/
+          └── CartoonServiceImpl.java  # Lógica de negocio
+
+src/main/resources/
+  └── application.yaml
+
+.env                                   # Variables de entorno (NO subir a Git)
 ```
 
 ---
 
 ## Endpoints REST
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| `POST` | `/api/cartoon/generate` | Sube imagen y genera cartoon (async) |
-| `GET` | `/api/cartoon/task/{taskId}` | Consulta resultado de tarea asíncrona |
-| `GET` | `/api/cartoon/all` | Lista todos los documentos en MongoDB |
-| `GET` | `/api/cartoon/{id}` | Busca documento por ID de MongoDB |
-| `GET` | `/api/cartoon/status/{status}` | Filtra por estado: `pending`, `completed`, `failed` |
+**Base URL:** `http://localhost:8085/api/cartoon`
 
-### Ejemplo: Generar cartoon
+| Método | Path                        | Descripción                                  |
+|--------|-----------------------------|----------------------------------------------|
+| `POST` | `/api/cartoon/generate`     | Subir imagen y generar tarea cartoon         |
+| `GET`  | `/api/cartoon/task/{taskId}`| Consultar resultado de una tarea asíncrona   |
+| `GET`  | `/api/cartoon/all`          | Listar todos los registros                   |
+| `GET`  | `/api/cartoon/{id}`         | Buscar un registro por su ID de MongoDB      |
+| `GET`  | `/api/cartoon/status/{status}` | Filtrar registros por estado              |
 
-```
-POST /api/cartoon/generate
-Content-Type: multipart/form-data
+---
 
-image  = <archivo JPEG/PNG/JPG/BMP/WEBP>
-index  = 1   (estilo de cartoon: 1–N según la API)
-```
+### POST `/api/cartoon/generate` — Generar cartoon
 
-### Ejemplo: Consultar resultado
+**Content-Type:** `multipart/form-data`
 
-```
-GET /api/cartoon/task/abc123xyz
+| Campo   | Tipo   | Descripción                             |
+|---------|--------|-----------------------------------------|
+| `image` | File   | Imagen a convertir (JPEG/PNG/BMP/WEBP)  |
+| `index` | String | Índice del estilo cartoon (ej: `"1"`)   |
+
+**Respuesta:**
+
+```json
+{
+  "id": "664f1a2b3c4d5e6f7a8b9c0d",
+  "imageName": "foto.jpg",
+  "cartoonIndex": 1,
+  "taskId": "task_abc123",
+  "taskType": "async",
+  "requestId": "req_xyz",
+  "logId": "log_xyz",
+  "errorCode": 0,
+  "errorMsg": null,
+  "resultUrl": null,
+  "taskStatus": null,
+  "status": "pending",
+  "createdAt": "2026-04-06T10:00:00"
+}
 ```
 
 ---
 
-## Modelo MongoDB — `CartoonResult`
+### GET `/api/cartoon/task/{taskId}` — Consultar resultado
 
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| `id` | String | ID del documento (MongoDB) |
-| `imageName` | String | Nombre del archivo subido |
-| `cartoonIndex` | Integer | Estilo de cartoon seleccionado |
-| `taskId` | String | ID de tarea devuelto por RapidAPI |
-| `taskType` | String | Tipo de tarea (`async`) |
-| `requestId` | String | ID de solicitud de RapidAPI |
-| `logId` | String | Log ID de RapidAPI |
-| `errorCode` | Integer | Código de error (0 = sin error) |
-| `errorMsg` | String | Mensaje de error si aplica |
-| `resultUrl` | String | URL de la imagen cartoon resultante |
-| `taskStatus` | Integer | 0=en cola, 1=procesando, 2=completado |
-| `status` | String | `pending`, `completed`, `failed` |
-| `createdAt` | LocalDateTime | Fecha de creación |
+Consulta el estado actual de la tarea en RapidAPI y actualiza el registro en MongoDB.
+
+**Respuesta cuando está completada:**
+
+```json
+{
+  "id": "664f1a2b3c4d5e6f7a8b9c0d",
+  "taskId": "task_abc123",
+  "taskStatus": 2,
+  "status": "completed",
+  "resultUrl": "https://cdn.rapidapi.com/cartoon_result.jpg"
+}
+```
 
 ---
 
-## Documentación Swagger
+### Estados posibles
 
-Una vez levantado el servicio, accede a la UI interactiva en:
+| Estado      | `taskStatus` | Descripción                                          |
+|-------------|--------------|------------------------------------------------------|
+| `pending`   | `0` o `1`    | Tarea en cola o procesándose                         |
+| `completed` | `2`          | Imagen cartoon generada, `resultUrl` disponible      |
+| `failed`    | —            | Error durante el procesamiento (ver `errorMsg`)      |
+
+---
+
+## Integración RapidAPI
+
+| Propiedad  | Valor                                                       |
+|------------|-------------------------------------------------------------|
+| Nombre     | AI Cartoon Generator                                        |
+| Endpoint 1 | `POST /image/effects/generate_cartoonized_image`            |
+| Endpoint 2 | `GET /api/rapidapi/query-async-task-result?task_id={id}`    |
+| Autenticación | Header `x-rapidapi-key`                                  |
+
+### Parámetros — Generar (POST multipart)
+
+| Parámetro   | Tipo    | Descripción                              |
+|-------------|---------|------------------------------------------|
+| `image`     | File    | Imagen en formato binario                |
+| `index`     | Integer | Índice del estilo cartoon                |
+| `task_type` | String  | Siempre `"async"`                        |
+
+### Parámetros — Consultar resultado (GET)
+
+| Parámetro | Tipo   | Descripción                        |
+|-----------|--------|------------------------------------|
+| `task_id` | String | ID de tarea retornado al generar   |
+
+---
+
+## Swagger UI
+
+Una vez iniciada la aplicación:
+
+| Recurso       | URL                                    |
+|---------------|----------------------------------------|
+| Swagger UI    | http://localhost:8085/swagger-ui.html  |
+| OpenAPI JSON  | http://localhost:8085/api-docs         |
+
+---
+
+## Flujo de Procesamiento
 
 ```
-http://localhost:8080/swagger-ui.html
-```# AS241S5_AEJ_38-be
+Cliente
+  │
+  ▼
+POST /api/cartoon/generate  (multipart: image + index)
+  │
+  ▼
+CartoonServiceImpl
+  │
+  ├── 1. Lee los bytes de la imagen
+  │
+  ├── 2. POST RapidAPI → /generate_cartoonized_image
+  │         └── Retorna task_id + request_id
+  │
+  ├── 3. Guarda registro en MongoDB con status = "pending"
+  │
+  └── Retorna CartoonResult al cliente (con task_id)
+
+
+Cliente (después de unos segundos)
+  │
+  ▼
+GET /api/cartoon/task/{taskId}
+  │
+  ▼
+CartoonServiceImpl
+  │
+  ├── 1. GET RapidAPI → /query-async-task-result?task_id=...
+  │
+  ├── 2a. task_status = 2  ──► status = "completed" + guarda resultUrl
+  │
+  ├── 2b. task_status = 0/1 ──► status = "pending"  (reintentar luego)
+  │
+  └── 2c. error_code ≠ 0   ──► status = "failed"
+                   │
+                   ▼
+      Registro actualizado en MongoDB y retornado al cliente
+```

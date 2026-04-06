@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jhon.silva.cartoon.Model.CartoonResult;
-import jhon.silva.cartoon.Service.CartoonService;
+import jhon.silva.cartoon.Service.ICartoonService;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.web.bind.annotation.*;
@@ -17,9 +17,10 @@ import reactor.core.publisher.Mono;
 @Tag(name = "AI Cartoon Generator", description = "Convierte imágenes a estilo cartoon usando IA")
 public class CartoonRest{
 
-    private final CartoonService service;
 
-    public CartoonRest(CartoonService service) {
+    private final ICartoonService service;
+
+    public CartoonRest(ICartoonService service) {
         this.service = service;
     }
 
@@ -30,7 +31,7 @@ public class CartoonRest{
     @PostMapping(value = "/generate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Mono<CartoonResult> generate(
             @RequestPart("image") FilePart image,
-            @RequestPart("index") String index) {   // ✅ queda String, se convierte en el service
+            @RequestPart("index") String index) {   //  queda String, se convierte en el service
         return service.generateCartoon(image, index);
     }
 

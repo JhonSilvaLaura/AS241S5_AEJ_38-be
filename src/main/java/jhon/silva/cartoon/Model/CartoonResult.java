@@ -22,7 +22,7 @@ public class CartoonResult {
     private Integer errorCode;
     private String errorMsg;
     private String resultUrl;
-    private Integer taskStatus;   // ✅ 0=queued, 1=processing, 2=success
+    private Integer taskStatus;   //  0=queued, 1=processing, 2=success
     private String status;        // pending, completed, failed
     private LocalDateTime createdAt;
 

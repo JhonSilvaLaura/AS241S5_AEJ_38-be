@@ -1,8 +1,9 @@
-package jhon.silva.cartoon.Service;
+package jhon.silva.cartoon.Service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jhon.silva.cartoon.Model.CartoonResult;
 import jhon.silva.cartoon.Repository.CartoonRepository;
+import jhon.silva.cartoon.Service.ICartoonService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.MediaType;
@@ -21,7 +22,7 @@ import java.net.http.HttpResponse;
 import java.util.Map;
 
 @Service
-public class CartoonService {
+public class CartoonServiceImpl implements ICartoonService {
 
     private final WebClient webClient;
     private final CartoonRepository repository;
@@ -41,14 +42,14 @@ public class CartoonService {
     @Value("${rapidapi.base-url}")
     private String baseUrl;
 
-    public CartoonService(WebClient cartoonWebClient, CartoonRepository repository) {
+    public CartoonServiceImpl(WebClient cartoonWebClient, CartoonRepository repository) {
         this.webClient = cartoonWebClient;
         this.repository = repository;
     }
 
+    @Override
     public Mono<CartoonResult> generateCartoon(FilePart image, String index) {
 
-        // ✅ Leer bytes como multipart/form-data (file)
         Mono<byte[]> imageBytes = DataBufferUtils
                 .join(image.content())
                 .map(dataBuffer -> {
@@ -60,13 +61,12 @@ public class CartoonService {
 
         return imageBytes.flatMap(bytes -> {
 
-            // ✅ multipart/form-data con file + index + task_type
             MultipartBodyBuilder builder = new MultipartBodyBuilder();
             builder.part("image", bytes)
                     .filename(image.filename())
                     .contentType(MediaType.APPLICATION_OCTET_STREAM);
             builder.part("index", Integer.parseInt(index));
-            builder.part("task_type", "async");   // ✅ requerido según docs
+            builder.part("task_type", "async");
 
             System.out.println(">>> POST: " + endpointGenerate);
             System.out.println(">>> imagen: " + image.filename() + " | index: " + index);
@@ -117,11 +117,11 @@ public class CartoonService {
         });
     }
 
+    @Override
     public Mono<CartoonResult> checkTaskResult(String taskId) {
 
         System.out.println(">>> GET task_id: " + taskId);
 
-        // ✅ /api/rapidapi/query-async-task-result?task_id=...
         String fullUrl = baseUrl + endpointResult + "?task_id=" + taskId;
         System.out.println(">>> URL: " + fullUrl);
 
@@ -152,16 +152,14 @@ public class CartoonService {
                                     if (resp.containsKey("error_code"))
                                         existing.setErrorCode(((Number) resp.get("error_code")).intValue());
 
-                                    // ✅ task_status: 0=queued, 1=processing, 2=success
                                     if (resp.containsKey("task_status")) {
                                         int ts = ((Number) resp.get("task_status")).intValue();
                                         existing.setTaskStatus(ts);
                                         System.out.println(">>> task_status: " + ts);
 
                                         switch (ts) {
-                                            case 2:   // SUCCEED
+                                            case 2:
                                                 existing.setStatus("completed");
-                                                // ✅ result_url viene dentro de data
                                                 if (resp.containsKey("data")) {
                                                     @SuppressWarnings("unchecked")
                                                     Map<String, Object> data = (Map<String, Object>) resp.get("data");
@@ -169,10 +167,10 @@ public class CartoonService {
                                                         existing.setResultUrl(data.get("result_url").toString());
                                                 }
                                                 break;
-                                            case 1:   // PROCESSING
+                                            case 1:
                                                 existing.setStatus("pending");
                                                 break;
-                                            case 0:   // QUEUED
+                                            case 0:
                                                 existing.setStatus("pending");
                                                 break;
                                             default:
@@ -207,7 +205,18 @@ public class CartoonService {
                 });
     }
 
-    public Flux<CartoonResult> getAllResults() { return repository.findAll(); }
-    public Flux<CartoonResult> getByStatus(String status) { return repository.findByStatus(status); }
-    public Mono<CartoonResult> getById(String id) { return repository.findById(id); }
+    @Override
+    public Flux<CartoonResult> getAllResults() {
+        return repository.findAll();
+    }
+
+    @Override
+    public Flux<CartoonResult> getByStatus(String status) {
+        return repository.findByStatus(status);
+    }
+
+    @Override
+    public Mono<CartoonResult> getById(String id) {
+        return repository.findById(id);
+    }
 }

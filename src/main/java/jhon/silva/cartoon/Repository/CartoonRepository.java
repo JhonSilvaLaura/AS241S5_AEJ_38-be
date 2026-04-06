@@ -9,6 +9,6 @@ import reactor.core.publisher.Mono;
 
 public interface CartoonRepository extends ReactiveMongoRepository<CartoonResult, String> {
     Flux<CartoonResult> findByStatus(String status);
-    Mono<CartoonResult> findByTaskId(String taskId); // ✅ nuevo
-    Mono<CartoonResult> findByRequestId(String requestId); // ✅ nuevo
+    Mono<CartoonResult> findByTaskId(String taskId); //  nuevo
+    Mono<CartoonResult> findByRequestId(String requestId); //  nuevo
 }
