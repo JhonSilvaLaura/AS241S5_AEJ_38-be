@@ -8,8 +8,8 @@ spring:
 
 rapidapi:
   key: ${RAPIDAPI_KEY}
-  host: article-extractor-and-summarizer.p.rapidapi.com
-  base-url: https://article-extractor-and-summarizer.p.rapidapi.com
+  host: ${RAPIDAPI_HOST}
+  base-url: ${RAPIDAPI_BASE_URL}
 
 springdoc:
   swagger-ui:
@@ -17,6 +17,15 @@ springdoc:
     enabled: true
   api-docs:
     path: /api-docs
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
 
 server:
   port: 8081

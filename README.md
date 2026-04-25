@@ -54,6 +54,7 @@ Características principales:
 | Project Reactor | 3.6.9   | Programación reactiva (Mono / Flux) |
 | Spring Data R2DBC | 3.3.3   | Acceso reactivo a BD relacional |
 | r2dbc-postgresql | 1.0.5   | Driver R2DBC para PostgreSQL |
+| Spring Boot Actuator | 3.5.13  | Health checks y métricas |
 | Lombok | 1.18.34 | Reducción de boilerplate |
 | SpringDoc OpenAPI | 2.3.0   | Documentación Swagger UI |
 | dotenv-java | 3.0.0   | Carga de variables de entorno |
@@ -82,6 +83,15 @@ Características principales:
     <groupId>org.postgresql</groupId>
     <artifactId>r2dbc-postgresql</artifactId>
     <scope>runtime</scope>
+</dependency>
+```
+
+### Spring Boot Actuator (Health Checks)
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-actuator</artifactId>
 </dependency>
 ```
 
@@ -192,6 +202,15 @@ springdoc:
     enabled: true
   api-docs:
     path: /api-docs
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
 
 server:
   port: 8081

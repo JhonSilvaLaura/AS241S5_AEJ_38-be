@@ -40,7 +40,7 @@ public class ArticleServiceImpl implements IArticleService {
                 .queryParam("url", request.getUrl())
                 .queryParam("length", request.getLength() != null ? request.getLength() : 3)
                 .queryParam("lang", request.getLang() != null ? request.getLang() : "es")
-                .queryParam("engine", 2)
+                .queryParam("engine", 1)
                 .build()
                 .toUriString();
 
