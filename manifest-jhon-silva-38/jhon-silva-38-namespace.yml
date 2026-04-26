@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: jhon-silva-38
+  labels:
+    name: jhon-silva-38
+    environment: development
+    project: ai-cartoon-generator

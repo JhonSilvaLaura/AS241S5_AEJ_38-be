@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: jhon-silva-38-service
+  namespace: jhon-silva-38
+  labels:
+    app: jhon-silva-38-cartoon
+    version: v1
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8085
+    targetPort: 8085
+    protocol: TCP
+    name: http
+  selector:
+    app: jhon-silva-38-cartoon
