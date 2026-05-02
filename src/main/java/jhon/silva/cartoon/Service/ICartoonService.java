@@ -16,4 +16,12 @@ public interface ICartoonService {
     Flux<CartoonResult> getByStatus(String status);
 
     Mono<CartoonResult> getById(String id);
+    
+    // Nuevos métodos para CRUD completo
+    Mono<CartoonResult> updateCartoon(String id, FilePart image, String index);
+    
+    Mono<CartoonResult> deleteCartoon(String id);
+    
+    // Método para descargar imagen
+    Mono<byte[]> downloadImage(String imageUrl);
 }

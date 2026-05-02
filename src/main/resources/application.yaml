@@ -5,6 +5,8 @@ spring:
     mongodb:
       database: ${MONGO_DATABASE}
       uri: ${MONGO_URI}
+  codec:
+    max-in-memory-size: 10MB
 
 rapidapi:
   key: ${RAPIDAPI_KEY}

@@ -24,9 +24,12 @@ public class CartoonResult {
     private String resultUrl;
     private Integer taskStatus;   //  0=queued, 1=processing, 2=success
     private String status;        // pending, completed, failed
+    private Boolean deleted;      // false=activo, true=eliminado (borrado lógico)
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     public CartoonResult() {
         this.createdAt = LocalDateTime.now();
+        this.deleted = false;
     }
 }

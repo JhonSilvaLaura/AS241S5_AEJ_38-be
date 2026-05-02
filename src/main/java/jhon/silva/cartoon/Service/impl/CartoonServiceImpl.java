@@ -207,16 +207,130 @@ public class CartoonServiceImpl implements ICartoonService {
 
     @Override
     public Flux<CartoonResult> getAllResults() {
-        return repository.findAll();
+        return repository.findByDeletedFalse(); // Solo retorna los no eliminados
     }
 
     @Override
     public Flux<CartoonResult> getByStatus(String status) {
-        return repository.findByStatus(status);
+        return repository.findByStatusAndDeletedFalse(status); // Solo retorna los no eliminados
     }
 
     @Override
     public Mono<CartoonResult> getById(String id) {
-        return repository.findById(id);
+        return repository.findById(id)
+                .filter(result -> !result.getDeleted()); // Solo retorna si no está eliminado
+    }
+
+    @Override
+    public Mono<CartoonResult> updateCartoon(String id, FilePart image, String index) {
+        System.out.println(">>> UPDATE cartoon id: " + id);
+
+        return repository.findById(id)
+                .filter(existing -> !existing.getDeleted()) // Verificar que no esté eliminado
+                .flatMap(existing -> {
+                    // Generar nuevo cartoon con la API
+                    Mono<byte[]> imageBytes = DataBufferUtils
+                            .join(image.content())
+                            .map(dataBuffer -> {
+                                byte[] bytes = new byte[dataBuffer.readableByteCount()];
+                                dataBuffer.read(bytes);
+                                DataBufferUtils.release(dataBuffer);
+                                return bytes;
+                            });
+
+                    return imageBytes.flatMap(bytes -> {
+                        MultipartBodyBuilder builder = new MultipartBodyBuilder();
+                        builder.part("image", bytes)
+                                .filename(image.filename())
+                                .contentType(MediaType.APPLICATION_OCTET_STREAM);
+                        builder.part("index", Integer.parseInt(index));
+                        builder.part("task_type", "async");
+
+                        System.out.println(">>> POST UPDATE: " + endpointGenerate);
+                        System.out.println(">>> nueva imagen: " + image.filename() + " | index: " + index);
+
+                        return webClient.post()
+                                .uri(endpointGenerate)
+                                .contentType(MediaType.MULTIPART_FORM_DATA)
+                                .body(BodyInserters.fromMultipartData(builder.build()))
+                                .retrieve()
+                                .bodyToMono(Map.class)
+                                .map(response -> {
+                                    @SuppressWarnings("unchecked")
+                                    Map<String, Object> resp = (Map<String, Object>) response;
+                                    System.out.println(">>> Respuesta API UPDATE: " + resp);
+
+                                    // Actualizar el registro existente
+                                    existing.setImageName(image.filename());
+                                    existing.setCartoonIndex(Integer.parseInt(index));
+                                    existing.setUpdatedAt(java.time.LocalDateTime.now());
+
+                                    if (resp.containsKey("request_id"))
+                                        existing.setRequestId(resp.get("request_id").toString());
+                                    if (resp.containsKey("log_id"))
+                                        existing.setLogId(resp.get("log_id").toString());
+                                    if (resp.containsKey("error_code"))
+                                        existing.setErrorCode(((Number) resp.get("error_code")).intValue());
+                                    if (resp.containsKey("error_msg"))
+                                        existing.setErrorMsg(resp.get("error_msg").toString());
+                                    if (resp.containsKey("task_type"))
+                                        existing.setTaskType(resp.get("task_type").toString());
+                                    if (resp.containsKey("task_id"))
+                                        existing.setTaskId(resp.get("task_id").toString());
+
+                                    // Resetear el resultado anterior
+                                    existing.setResultUrl(null);
+                                    existing.setTaskStatus(null);
+
+                                    Integer errorCode = existing.getErrorCode();
+                                    existing.setStatus(errorCode != null && errorCode == 0 ? "pending" : "failed");
+
+                                    return existing;
+                                })
+                                .flatMap(repository::save)
+                                .onErrorResume(e -> {
+                                    System.out.println(">>> ERROR update: " + e.getMessage());
+                                    existing.setStatus("failed");
+                                    existing.setErrorMsg(e.getMessage());
+                                    existing.setUpdatedAt(java.time.LocalDateTime.now());
+                                    return repository.save(existing);
+                                });
+                    });
+                })
+                .switchIfEmpty(Mono.error(new RuntimeException("Registro no encontrado o ya eliminado")));
+    }
+
+    @Override
+    public Mono<CartoonResult> deleteCartoon(String id) {
+        System.out.println(">>> DELETE (lógico) cartoon id: " + id);
+
+        return repository.findById(id)
+                .flatMap(existing -> {
+                    // Verificar que no esté ya eliminado
+                    if (existing.getDeleted() != null && existing.getDeleted()) {
+                        return Mono.error(new RuntimeException("Registro no encontrado o ya eliminado"));
+                    }
+                    
+                    existing.setDeleted(true);
+                    existing.setUpdatedAt(java.time.LocalDateTime.now());
+                    System.out.println(">>> Marcando como eliminado: " + existing.getImageName());
+                    return repository.save(existing);
+                })
+                .switchIfEmpty(Mono.error(new RuntimeException("Registro no encontrado o ya eliminado")));
+    }
+
+    @Override
+    public Mono<byte[]> downloadImage(String imageUrl) {
+        System.out.println(">>> Descargando imagen: " + imageUrl);
+        
+        return webClient.get()
+                .uri(imageUrl)
+                .retrieve()
+                .bodyToMono(byte[].class)
+                .doOnSuccess(bytes -> System.out.println(">>> Imagen descargada: " + bytes.length + " bytes"))
+                .onErrorResume(e -> {
+                    System.out.println(">>> ERROR descargando imagen: " + e.getMessage());
+                    return Mono.error(new RuntimeException("Error al descargar la imagen"));
+                });
     }
 }

@@ -133,7 +133,9 @@ El proyecto usa **MongoDB** con la colección `cartoon`. No requiere SQL ni migr
   "resultUrl": "https://cdn.rapidapi.com/result.jpg",
   "taskStatus": 2,
   "status": "completed",
-  "createdAt": "2026-04-06T10:00:00"
+  "deleted": false,
+  "createdAt": "2026-04-06T10:00:00",
+  "updatedAt": "2026-04-06T10:05:00"
 }
 ```
 
@@ -153,7 +155,9 @@ El proyecto usa **MongoDB** con la colección `cartoon`. No requiere SQL ni migr
 | `resultUrl`   | String       | URL de la imagen cartoon generada                        |
 | `taskStatus`  | Integer      | Estado numérico: `0`=queued, `1`=processing, `2`=success |
 | `status`      | String       | Estado legible: `pending` \| `completed` \| `failed`    |
+| `deleted`     | Boolean      | Borrado lógico: `false`=activo, `true`=eliminado         |
 | `createdAt`   | LocalDateTime| Fecha y hora de creación del registro                    |
+| `updatedAt`   | LocalDateTime| Fecha y hora de última actualización                     |
 
 ---
 
@@ -246,13 +250,15 @@ src/main/resources/
 
 **Base URL:** `http://localhost:8085/api/cartoon`
 
-| Método | Path                        | Descripción                                  |
-|--------|-----------------------------|----------------------------------------------|
-| `POST` | `/api/cartoon/generate`     | Subir imagen y generar tarea cartoon         |
-| `GET`  | `/api/cartoon/task/{taskId}`| Consultar resultado de una tarea asíncrona   |
-| `GET`  | `/api/cartoon/all`          | Listar todos los registros                   |
-| `GET`  | `/api/cartoon/{id}`         | Buscar un registro por su ID de MongoDB      |
-| `GET`  | `/api/cartoon/status/{status}` | Filtrar registros por estado              |
+| Método   | Path                        | Descripción                                  |
+|----------|-----------------------------|----------------------------------------------|
+| `POST`   | `/api/cartoon/generate`     | Subir imagen y generar tarea cartoon         |
+| `GET`    | `/api/cartoon/task/{taskId}`| Consultar resultado de una tarea asíncrona   |
+| `GET`    | `/api/cartoon/all`          | Listar todos los registros (no eliminados)   |
+| `GET`    | `/api/cartoon/{id}`         | Buscar un registro por su ID de MongoDB      |
+| `GET`    | `/api/cartoon/status/{status}` | Filtrar registros por estado              |
+| `PUT`    | `/api/cartoon/{id}`         | Actualizar registro regenerando cartoon      |
+| `DELETE` | `/api/cartoon/{id}`         | Eliminar registro (borrado lógico)           |
 
 ---
 
@@ -302,6 +308,62 @@ Consulta el estado actual de la tarea en RapidAPI y actualiza el registro en Mon
   "resultUrl": "https://cdn.rapidapi.com/cartoon_result.jpg"
 }
 ```
+
+---
+
+### Estados posibles
+
+| Estado      | `taskStatus` | Descripción                                          |
+|-------------|--------------|------------------------------------------------------|
+| `pending`   | `0` o `1`    | Tarea en cola o procesándose                         |
+| `completed` | `2`          | Imagen cartoon generada, `resultUrl` disponible      |
+| `failed`    | —            | Error durante el procesamiento (ver `errorMsg`)      |
+
+---
+
+### PUT `/api/cartoon/{id}` — Actualizar cartoon
+
+Actualiza un registro existente regenerando el cartoon con nueva imagen/índice usando la API de IA.
+
+**Content-Type:** `multipart/form-data`
+
+| Campo   | Tipo   | Descripción                             |
+|---------|--------|-----------------------------------------|
+| `image` | File   | Nueva imagen a convertir                |
+| `index` | String | Nuevo índice del estilo cartoon         |
+
+**Respuesta:**
+
+```json
+{
+  "id": "664f1a2b3c4d5e6f7a8b9c0d",
+  "imageName": "nueva_foto.jpg",
+  "cartoonIndex": 2,
+  "taskId": "task_new123",
+  "status": "pending",
+  "deleted": false,
+  "updatedAt": "2026-04-29T15:30:00"
+}
+```
+
+---
+
+### DELETE `/api/cartoon/{id}` — Eliminar registro (borrado lógico)
+
+Marca un registro como eliminado sin borrarlo físicamente de la base de datos.
+
+**Respuesta:**
+
+```json
+{
+  "id": "664f1a2b3c4d5e6f7a8b9c0d",
+  "imageName": "foto.jpg",
+  "deleted": true,
+  "updatedAt": "2026-04-29T15:35:00"
+}
+```
+
+**Nota:** Los registros eliminados no aparecen en las consultas GET `/all` o `/status/{status}`.
 
 ---
 
