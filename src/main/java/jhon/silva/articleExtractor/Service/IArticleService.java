@@ -11,4 +11,6 @@ public interface IArticleService {
     Mono<ArticleSummary> getById(Long id);
     Flux<ArticleSummary> getByStatus(String status);
     Flux<ArticleSummary> getByLanguage(String lang);
+    Mono<ArticleSummary> update(Long id, ArticleRequest request);
+    Mono<Void> delete(Long id);
 }

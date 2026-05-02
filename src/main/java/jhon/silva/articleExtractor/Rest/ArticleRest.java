@@ -47,4 +47,16 @@ public class ArticleRest {
     public Flux<ArticleSummary> getByLanguage(@PathVariable String lang) {
         return service.getByLanguage(lang);
     }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Actualizar artículo", description = "Actualiza un artículo existente y regenera su resumen")
+    public Mono<ArticleSummary> update(@PathVariable Long id, @RequestBody ArticleRequest request) {
+        return service.update(id, request);
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Eliminar artículo", description = "Elimina un artículo por su ID")
+    public Mono<Void> delete(@PathVariable Long id) {
+        return service.delete(id);
+    }
 }

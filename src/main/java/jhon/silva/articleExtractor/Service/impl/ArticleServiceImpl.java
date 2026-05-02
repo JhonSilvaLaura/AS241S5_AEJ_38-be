@@ -69,7 +69,7 @@ public class ArticleServiceImpl implements IArticleService {
                     if (response.containsKey("summary")) {
                         record.setSummary(response.get("summary").toString());
                         record.setStatus("generated");
-                        System.out.println("✅ Resumen generado");
+                        System.out.println("Resumen generado");
                     } else {
                         record.setStatus("failed");
                         record.setErrorMessage("Respuesta inesperada: " + response);
@@ -96,4 +96,72 @@ public class ArticleServiceImpl implements IArticleService {
 
     @Override
     public Flux<ArticleSummary> getByLanguage(String lang) { return repository.findByLanguage(lang); }
+
+    @Override
+    public Mono<ArticleSummary> update(Long id, ArticleRequest request) {
+        return repository.findById(id)
+                .flatMap(existing -> {
+                    // Actualizar campos básicos
+                    existing.setUrl(request.getUrl());
+                    existing.setLanguage(request.getLang() != null ? request.getLang() : "es");
+                    existing.setLength(request.getLength() != null ? request.getLength() : 3);
+                    existing.setStatus("pending");
+                    existing.setErrorMessage(null);
+
+                    // Construir URI para RapidAPI
+                    String uri = UriComponentsBuilder.fromPath("/summarize")
+                            .queryParam("url", request.getUrl())
+                            .queryParam("length", existing.getLength())
+                            .queryParam("lang", existing.getLanguage())
+                            .queryParam("engine", 1)
+                            .build()
+                            .toUriString();
+
+                    System.out.println(">>> UPDATE - GET: " + uri);
+
+                    // Llamar a RapidAPI para regenerar el resumen
+                    return webClient.get()
+                            .uri(uri)
+                            .retrieve()
+                            .onStatus(status -> status.is4xxClientError(), response ->
+                                    response.bodyToMono(String.class)
+                                            .flatMap(err -> {
+                                                System.err.println(">>> 4xx: " + err);
+                                                return Mono.error(new RuntimeException("Error 4xx: " + err));
+                                            })
+                            )
+                            .onStatus(status -> status.is5xxServerError(), response ->
+                                    response.bodyToMono(String.class)
+                                            .flatMap(err -> {
+                                                System.err.println(">>> 5xx: " + err);
+                                                return Mono.error(new RuntimeException("Error 5xx: " + err));
+                                            })
+                            )
+                            .bodyToMono(java.util.Map.class)
+                            .map(response -> {
+                                System.out.println(">>> Respuesta UPDATE: " + response);
+                                if (response.containsKey("summary")) {
+                                    existing.setSummary(response.get("summary").toString());
+                                    existing.setStatus("generated");
+                                    System.out.println("Resumen actualizado");
+                                } else {
+                                    existing.setStatus("failed");
+                                    existing.setErrorMessage("Respuesta inesperada: " + response);
+                                }
+                                return existing;
+                            })
+                            .flatMap(repository::save)
+                            .onErrorResume(e -> {
+                                System.err.println(">>> ERROR UPDATE: " + e.getMessage());
+                                existing.setStatus("failed");
+                                existing.setErrorMessage(e.getMessage());
+                                return repository.save(existing);
+                            });
+                });
+    }
+
+    @Override
+    public Mono<Void> delete(Long id) {
+        return repository.deleteById(id);
+    }
 }
