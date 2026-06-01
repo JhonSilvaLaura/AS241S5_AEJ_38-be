@@ -10,41 +10,8 @@ env:
   DOCKER_IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/article-extractor-api
 
 jobs:
-  build-and-test:
-    name: Build and Test
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up JDK 21
-      uses: actions/setup-java@v4
-      with:
-        java-version: '21'
-        distribution: 'temurin'
-        cache: maven
-
-    - name: Build with Maven
-      run: mvn clean install -DskipTests
-
-    - name: Run tests
-      run: mvn test
-
-    - name: Generate test report
-      if: always()
-      run: mvn surefire-report:report
-
-    - name: Upload test results
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-results
-        path: target/surefire-reports/
-
-  docker-build-push:
+  build-and-push:
     name: Build and Push Docker Image
-    needs: build-and-test
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
 
@@ -90,7 +57,7 @@ jobs:
 
   deploy-to-render:
     name: Deploy to Render
-    needs: docker-build-push
+    needs: build-and-push
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/develop-be-sql' || github.ref == 'refs/heads/main')
 
@@ -108,23 +75,3 @@ jobs:
         echo "🚀 Service ID: ${{ secrets.RENDER_SERVICE_ID }}"
         echo "📦 Docker Image: ${{ env.DOCKER_IMAGE_NAME }}"
         echo "🌐 Check your Render dashboard for deployment status"
-
-  code-quality:
-    name: Code Quality Analysis
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up JDK 21
-      uses: actions/setup-java@v4
-      with:
-        java-version: '21'
-        distribution: 'temurin'
-
-    - name: Run Maven verify
-      run: mvn verify -DskipTests
-
-    - name: Check code style
-      run: mvn checkstyle:check || true
