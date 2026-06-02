@@ -207,18 +207,22 @@ public class CartoonServiceImpl implements ICartoonService {
 
     @Override
     public Flux<CartoonResult> getAllResults() {
-        return repository.findByDeletedFalse(); // Solo retorna los no eliminados
+        // Retorna todos los registros donde deleted sea false O null (no existe el campo)
+        return repository.findAll()
+                .filter(result -> result.getDeleted() == null || !result.getDeleted());
     }
 
     @Override
     public Flux<CartoonResult> getByStatus(String status) {
-        return repository.findByStatusAndDeletedFalse(status); // Solo retorna los no eliminados
+        // Retorna todos los registros con el status indicado donde deleted sea false O null
+        return repository.findByStatus(status)
+                .filter(result -> result.getDeleted() == null || !result.getDeleted());
     }
 
     @Override
     public Mono<CartoonResult> getById(String id) {
         return repository.findById(id)
-                .filter(result -> !result.getDeleted()); // Solo retorna si no está eliminado
+                .filter(result -> result.getDeleted() == null || !result.getDeleted()); // Incluye documentos sin el campo deleted
     }
 
     @Override
