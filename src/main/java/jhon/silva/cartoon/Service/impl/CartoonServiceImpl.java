@@ -49,6 +49,9 @@ public class CartoonServiceImpl implements ICartoonService {
 
     @Override
     public Mono<CartoonResult> generateCartoon(FilePart image, String index) {
+        System.out.println(">>> [generateCartoon] Iniciando proceso...");
+        System.out.println(">>> [generateCartoon] Imagen: " + image.filename());
+        System.out.println(">>> [generateCartoon] Index: " + index);
 
         Mono<byte[]> imageBytes = DataBufferUtils
                 .join(image.content())
@@ -56,6 +59,7 @@ public class CartoonServiceImpl implements ICartoonService {
                     byte[] bytes = new byte[dataBuffer.readableByteCount()];
                     dataBuffer.read(bytes);
                     DataBufferUtils.release(dataBuffer);
+                    System.out.println(">>> [generateCartoon] Bytes leídos: " + bytes.length);
                     return bytes;
                 });
 
@@ -68,8 +72,9 @@ public class CartoonServiceImpl implements ICartoonService {
             builder.part("index", Integer.parseInt(index));
             builder.part("task_type", "async");
 
-            System.out.println(">>> POST: " + endpointGenerate);
-            System.out.println(">>> imagen: " + image.filename() + " | index: " + index);
+            System.out.println(">>> [generateCartoon] POST: " + baseUrl + endpointGenerate);
+            System.out.println(">>> [generateCartoon] RapidAPI Key: " + (rapidApiKey != null ? "Configurada" : "NO CONFIGURADA"));
+            System.out.println(">>> [generateCartoon] RapidAPI Host: " + rapidApiHost);
 
             return webClient.post()
                     .uri(endpointGenerate)
@@ -77,10 +82,11 @@ public class CartoonServiceImpl implements ICartoonService {
                     .body(BodyInserters.fromMultipartData(builder.build()))
                     .retrieve()
                     .bodyToMono(Map.class)
+                    .doOnSuccess(resp -> System.out.println(">>> [generateCartoon] Respuesta API exitosa: " + resp))
+                    .doOnError(err -> System.out.println(">>> [generateCartoon] ERROR llamada API: " + err.getMessage()))
                     .map(response -> {
                         @SuppressWarnings("unchecked")
                         Map<String, Object> resp = (Map<String, Object>) response;
-                        System.out.println(">>> Respuesta API: " + resp);
 
                         CartoonResult result = new CartoonResult();
                         result.setImageName(image.filename());
@@ -102,18 +108,41 @@ public class CartoonServiceImpl implements ICartoonService {
                         Integer errorCode = result.getErrorCode();
                         result.setStatus(errorCode != null && errorCode == 0 ? "pending" : "failed");
 
+                        System.out.println(">>> [generateCartoon] CartoonResult creado - Status: " + result.getStatus());
                         return result;
                     })
-                    .flatMap(repository::save)
+                    .flatMap(result -> {
+                        System.out.println(">>> [generateCartoon] Guardando en MongoDB...");
+                        return repository.save(result)
+                                .doOnSuccess(saved -> System.out.println(">>> [generateCartoon] Guardado exitoso - ID: " + saved.getId()))
+                                .doOnError(err -> System.out.println(">>> [generateCartoon] ERROR al guardar: " + err.getMessage()));
+                    })
                     .onErrorResume(e -> {
-                        System.out.println(">>> ERROR generate: " + e.getMessage());
+                        System.out.println(">>> [generateCartoon] ERROR GENERAL: " + e.getClass().getName());
+                        System.out.println(">>> [generateCartoon] ERROR mensaje: " + e.getMessage());
+                        e.printStackTrace();
+                        
                         CartoonResult errorResult = new CartoonResult();
                         errorResult.setImageName(image.filename());
                         errorResult.setCartoonIndex(Integer.parseInt(index));
                         errorResult.setStatus("failed");
-                        errorResult.setErrorMsg(e.getMessage());
-                        return repository.save(errorResult);
+                        errorResult.setErrorMsg("Error: " + e.getMessage());
+                        
+                        System.out.println(">>> [generateCartoon] Guardando error en MongoDB...");
+                        return repository.save(errorResult)
+                                .doOnSuccess(saved -> System.out.println(">>> [generateCartoon] Error guardado - ID: " + saved.getId()))
+                                .doOnError(err -> System.out.println(">>> [generateCartoon] ERROR crítico al guardar: " + err.getMessage()));
                     });
+        }).onErrorResume(e -> {
+            System.out.println(">>> [generateCartoon] ERROR leyendo bytes: " + e.getMessage());
+            e.printStackTrace();
+            
+            CartoonResult errorResult = new CartoonResult();
+            errorResult.setImageName(image.filename());
+            errorResult.setStatus("failed");
+            errorResult.setErrorMsg("Error leyendo imagen: " + e.getMessage());
+            
+            return repository.save(errorResult);
         });
     }
 
@@ -207,9 +236,17 @@ public class CartoonServiceImpl implements ICartoonService {
 
     @Override
     public Flux<CartoonResult> getAllResults() {
+        System.out.println(">>> [getAllResults] Consultando todos los registros...");
         // Retorna todos los registros donde deleted sea false O null (no existe el campo)
         return repository.findAll()
-                .filter(result -> result.getDeleted() == null || !result.getDeleted());
+                .doOnNext(result -> System.out.println(">>> [getAllResults] Encontrado: ID=" + result.getId() + ", deleted=" + result.getDeleted()))
+                .filter(result -> {
+                    boolean include = result.getDeleted() == null || !result.getDeleted();
+                    System.out.println(">>> [getAllResults] ID=" + result.getId() + " incluido=" + include);
+                    return include;
+                })
+                .doOnComplete(() -> System.out.println(">>> [getAllResults] Consulta completada"))
+                .doOnError(err -> System.out.println(">>> [getAllResults] ERROR: " + err.getMessage()));
     }
 
     @Override
