@@ -236,24 +236,25 @@ public class CartoonServiceImpl implements ICartoonService {
 
     @Override
     public Flux<CartoonResult> getAllResults() {
-        System.out.println(">>> [getAllResults] Consultando todos los registros...");
-        // Retorna todos los registros donde deleted sea false O null (no existe el campo)
-        return repository.findAll()
-                .doOnNext(result -> System.out.println(">>> [getAllResults] Encontrado: ID=" + result.getId() + ", deleted=" + result.getDeleted()))
-                .filter(result -> {
-                    boolean include = result.getDeleted() == null || !result.getDeleted();
-                    System.out.println(">>> [getAllResults] ID=" + result.getId() + " incluido=" + include);
-                    return include;
-                })
+        System.out.println(">>> [getAllResults] Consultando todos los registros no eliminados...");
+        return repository.findAllNotDeleted()
+                .doOnNext(result -> System.out.println(">>> [getAllResults] Encontrado: ID=" + result.getId() 
+                        + ", status=" + result.getStatus() 
+                        + ", deleted=" + result.getDeleted()
+                        + ", imageName=" + result.getImageName()))
                 .doOnComplete(() -> System.out.println(">>> [getAllResults] Consulta completada"))
-                .doOnError(err -> System.out.println(">>> [getAllResults] ERROR: " + err.getMessage()));
+                .doOnError(err -> {
+                    System.out.println(">>> [getAllResults] ERROR: " + err.getMessage());
+                    err.printStackTrace();
+                });
     }
 
     @Override
     public Flux<CartoonResult> getByStatus(String status) {
-        // Retorna todos los registros con el status indicado donde deleted sea false O null
-        return repository.findByStatus(status)
-                .filter(result -> result.getDeleted() == null || !result.getDeleted());
+        System.out.println(">>> [getByStatus] Consultando status: " + status);
+        return repository.findByStatusNotDeleted(status)
+                .doOnNext(result -> System.out.println(">>> [getByStatus] Encontrado: ID=" + result.getId()))
+                .doOnComplete(() -> System.out.println(">>> [getByStatus] Consulta completada"));
     }
 
     @Override
