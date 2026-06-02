@@ -236,12 +236,21 @@ public class CartoonServiceImpl implements ICartoonService {
 
     @Override
     public Flux<CartoonResult> getAllResults() {
-        System.out.println(">>> [getAllResults] Consultando todos los registros no eliminados...");
-        return repository.findAllNotDeleted()
-                .doOnNext(result -> System.out.println(">>> [getAllResults] Encontrado: ID=" + result.getId() 
-                        + ", status=" + result.getStatus() 
-                        + ", deleted=" + result.getDeleted()
-                        + ", imageName=" + result.getImageName()))
+        System.out.println(">>> [getAllResults] Consultando todos los registros...");
+        return repository.findAll()
+                .doOnNext(result -> {
+                    System.out.println(">>> [getAllResults] Documento encontrado: ID=" + result.getId() 
+                            + ", status=" + result.getStatus() 
+                            + ", deleted=" + result.getDeleted()
+                            + ", imageName=" + result.getImageName());
+                })
+                .filter(result -> {
+                    // Incluir si deleted es null (no existe) o es false
+                    boolean isDeleted = result.getDeleted() != null && result.getDeleted();
+                    boolean include = !isDeleted;
+                    System.out.println(">>> [getAllResults] ID=" + result.getId() + " -> incluir=" + include + " (deleted=" + result.getDeleted() + ")");
+                    return include;
+                })
                 .doOnComplete(() -> System.out.println(">>> [getAllResults] Consulta completada"))
                 .doOnError(err -> {
                     System.out.println(">>> [getAllResults] ERROR: " + err.getMessage());
@@ -252,15 +261,24 @@ public class CartoonServiceImpl implements ICartoonService {
     @Override
     public Flux<CartoonResult> getByStatus(String status) {
         System.out.println(">>> [getByStatus] Consultando status: " + status);
-        return repository.findByStatusNotDeleted(status)
-                .doOnNext(result -> System.out.println(">>> [getByStatus] Encontrado: ID=" + result.getId()))
+        return repository.findByStatus(status)
+                .doOnNext(result -> System.out.println(">>> [getByStatus] Documento encontrado: ID=" + result.getId()))
+                .filter(result -> {
+                    // Incluir si deleted es null (no existe) o es false
+                    boolean isDeleted = result.getDeleted() != null && result.getDeleted();
+                    return !isDeleted;
+                })
                 .doOnComplete(() -> System.out.println(">>> [getByStatus] Consulta completada"));
     }
 
     @Override
     public Mono<CartoonResult> getById(String id) {
         return repository.findById(id)
-                .filter(result -> result.getDeleted() == null || !result.getDeleted()); // Incluye documentos sin el campo deleted
+                .filter(result -> {
+                    // Incluir si deleted es null (no existe) o es false
+                    boolean isDeleted = result.getDeleted() != null && result.getDeleted();
+                    return !isDeleted;
+                });
     }
 
     @Override
