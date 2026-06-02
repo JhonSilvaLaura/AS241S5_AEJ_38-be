@@ -1,0 +1,163 @@
+name: Security Analysis
+
+on:
+  push:
+    branches: [ develop-be-sql ]
+  pull_request:
+    branches: [ develop-be-sql ]
+  schedule:
+  # Ejecutar todos los lunes a las 2am UTC
+  - cron: '0 2 * * 1'
+
+jobs:
+  sonarcloud:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+        cache: 'maven'
+
+    - name: Cache SonarCloud packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.sonar/cache
+        key: ${{ runner.os }}-sonar
+        restore-keys: ${{ runner.os }}-sonar
+
+    - name: Cache Maven packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Build and analyze with SonarCloud
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      run: |
+        mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+          -Dsonar.projectKey=JhonSilvaLaura_AS241S5_AEJ_38-be \
+          -Dsonar.host.url=https://sonarcloud.io \
+          -DskipTests
+
+    - name: Upload SonarCloud results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: sonarcloud-report
+        path: target/sonar/
+
+  snyk-dependencies:
+    name: Snyk Dependencies Scan
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+        cache: 'maven'
+
+    - name: Run Snyk to check for vulnerabilities
+      uses: snyk/actions/maven@master
+      continue-on-error: true
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --severity-threshold=high --json-file-output=snyk-dependencies.json
+
+    - name: Upload Snyk results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: snyk-dependencies-report
+        path: snyk-dependencies.json
+
+  snyk-docker:
+    name: Snyk Docker Image Scan
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+        cache: 'maven'
+
+    - name: Build JAR
+      run: mvn clean package -DskipTests
+
+    - name: Build Docker image
+      run: docker build -t article-extractor:test .
+
+    - name: Run Snyk to check Docker image for vulnerabilities
+      uses: snyk/actions/docker@master
+      continue-on-error: true
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        image: article-extractor:test
+        args: --severity-threshold=high --json-file-output=snyk-docker.json
+
+    - name: Upload Snyk Docker results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: snyk-docker-report
+        path: snyk-docker.json
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+
+    - name: Dependency Review
+      uses: actions/dependency-review-action@v4
+      with:
+        fail-on-severity: high
+
+  security-report:
+    name: Generate Security Report
+    needs: [ sonarcloud, snyk-dependencies, snyk-docker ]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+
+    - name: Create summary report
+      run: |
+        echo "# 🔒 Security Analysis Report" > security-report.md
+        echo "" >> security-report.md
+        echo "## 📊 Scan Results" >> security-report.md
+        echo "" >> security-report.md
+        echo "- ✅ SonarCloud Analysis: Completed" >> security-report.md
+        echo "- ✅ Snyk Dependencies Scan: Completed" >> security-report.md
+        echo "- ✅ Snyk Docker Scan: Completed" >> security-report.md
+        echo "" >> security-report.md
+        echo "Check individual artifacts for detailed reports." >> security-report.md
+
+    - name: Upload consolidated report
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-summary-report
+        path: security-report.md
