@@ -15,3 +15,4 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 # docker build -t jhonbrayansilvalaura/article-summarizer:latest .
 # docker run -d --name article-summarizer -p 8081:8081 jhonbrayansilvalaura/article-summarizer:latest
 # docker push jhonbrayansilvalaura/article-summarizer:latest
+#4eegsdgfsgdsgsd
