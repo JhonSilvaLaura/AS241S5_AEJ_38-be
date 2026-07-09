@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cartoon-generator-configmap
+  namespace: jhon-silva-38
+  labels:
+    app: cartoon-generator
+    component: configmap
+data:
+  # MongoDB Configuration (no sensible)
+  MONGO_URI: "mongodb+srv://jhonsilvalaura_fitGym:jhonbrayansilva@fitgym.61rdimv.mongodb.net/?appName=FitGym"
+  MONGO_DATABASE: "iaCarton"
+
+  # RapidAPI Configuration (no sensible)
+  RAPIDAPI_HOST: "ai-cartoon-generator.p.rapidapi.com"
+  RAPIDAPI_BASE_URL: "https://ai-cartoon-generator.p.rapidapi.com"
+
+  # Application Configuration
+  SERVER_PORT: "8085"
+  SPRING_APPLICATION_NAME: "ai-cartoon-generator"
+
+  # Max file size for image uploads
+  SPRING_CODEC_MAX_IN_MEMORY_SIZE: "10MB"

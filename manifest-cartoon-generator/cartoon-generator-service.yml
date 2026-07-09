@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cartoon-generator-service
+  namespace: jhon-silva-38
+  labels:
+    app: cartoon-generator
+    component: service
+spec:
+  type: LoadBalancer
+  selector:
+    app: cartoon-generator
+    name: cartoon-generator-deployment
+  ports:
+  - name: http
+    protocol: TCP
+    port: 8085
+    targetPort: 8085
+  sessionAffinity: None

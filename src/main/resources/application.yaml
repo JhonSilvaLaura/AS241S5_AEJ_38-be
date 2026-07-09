@@ -3,15 +3,15 @@ spring:
     name: ai-cartoon-generator
   data:
     mongodb:
-      database: ${MONGO_DATABASE}
-      uri: ${MONGO_URI}
+      database: ${MONGO_DATABASE:iaCarton}
+      uri: ${MONGO_URI:mongodb+srv://jhonsilvalaura_fitGym:jhonbrayansilva@fitgym.61rdimv.mongodb.net/?appName=FitGym}
   codec:
     max-in-memory-size: 10MB
 
 rapidapi:
-  key: ${RAPIDAPI_KEY}
-  host: ${RAPIDAPI_HOST}
-  base-url: ${RAPIDAPI_BASE_URL}
+  key: ${RAPIDAPI_KEY:112f99e2c3msh7c1516d46d40e5ep1cf580jsne4b14ff12f8f}
+  host: ${RAPIDAPI_HOST:ai-cartoon-generator.p.rapidapi.com}
+  base-url: ${RAPIDAPI_BASE_URL:https://ai-cartoon-generator.p.rapidapi.com}
   endpoint-generate: /image/effects/generate_cartoonized_image
   endpoint-result: /api/rapidapi/query-async-task-result
 

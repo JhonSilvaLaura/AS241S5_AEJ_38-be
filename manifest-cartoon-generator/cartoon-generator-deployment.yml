@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cartoon-generator-deployment
+  namespace: jhon-silva-38
+  labels:
+    app: cartoon-generator
+    name: cartoon-generator-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cartoon-generator
+      name: cartoon-generator-deployment
+  template:
+    metadata:
+      labels:
+        app: cartoon-generator
+        name: cartoon-generator-deployment
+    spec:
+      containers:
+      - name: cartoon-generator
+        image: jhonbrayansilvalaura/cartoon-generator:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8085
+          protocol: TCP
+        env:
+        # Variables desde ConfigMap (datos NO sensibles)
+        - name: MONGO_URI
+          valueFrom:
+            configMapKeyRef:
+              name: cartoon-generator-configmap
+              key: MONGO_URI
+        - name: MONGO_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: cartoon-generator-configmap
+              key: MONGO_DATABASE
+        - name: RAPIDAPI_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: cartoon-generator-configmap
+              key: RAPIDAPI_HOST
+        - name: RAPIDAPI_BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: cartoon-generator-configmap
+              key: RAPIDAPI_BASE_URL
+
+        # Variables desde Secret (datos SENSIBLES)
+        - name: RAPIDAPI_KEY
+          valueFrom:
+            secretKeyRef:
+              name: cartoon-generator-secret
+              key: RAPIDAPI_KEY
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
