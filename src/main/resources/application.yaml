@@ -2,14 +2,14 @@ spring:
   application:
     name: article-summarizer
   r2dbc:
-    url: ${DATABASE_URL}
-    username: ${DATABASE_USERNAME}
-    password: ${DATABASE_PASSWORD}
+    url: ${DATABASE_URL:r2dbc:postgresql://ep-rough-violet-adi6ri0k-pooler.c-2.us-east-1.aws.neon.tech/ia_article_extractor?sslmode=require&channel_binding=require}
+    username: ${DATABASE_USERNAME:neondb_owner}
+    password: ${DATABASE_PASSWORD:npg_pHT4NJx3gnSG}
 
 rapidapi:
-  key: ${RAPIDAPI_KEY}
-  host: ${RAPIDAPI_HOST}
-  base-url: ${RAPIDAPI_BASE_URL}
+  key: ${RAPIDAPI_KEY:112f99e2c3msh7c1516d46d40e5ep1cf580jsne4b14ff12f8f}
+  host: ${RAPIDAPI_HOST:article-extractor-and-summarizer.p.rapidapi.com}
+  base-url: ${RAPIDAPI_BASE_URL:https://article-extractor-and-summarizer.p.rapidapi.com}
 
 springdoc:
   swagger-ui:

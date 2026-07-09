@@ -19,60 +19,63 @@ spec:
         name: jhon-silva-38-deployment
     spec:
       containers:
-        - name: article-summarizer
-          image: jhonbrayansilvalaura/article-summarizer:latest
-          ports:
-            - containerPort: 8081
-              protocol: TCP
-          env:
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: jhon-silva-38-secret
-                  key: DATABASE_URL
-            - name: DATABASE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: jhon-silva-38-secret
-                  key: DATABASE_USERNAME
-            - name: DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: jhon-silva-38-secret
-                  key: DATABASE_PASSWORD
-            - name: RAPIDAPI_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: jhon-silva-38-secret
-                  key: RAPIDAPI_KEY
-            - name: RAPIDAPI_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: jhon-silva-38-secret
-                  key: RAPIDAPI_HOST
-            - name: RAPIDAPI_BASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: jhon-silva-38-secret
-                  key: RAPIDAPI_BASE_URL
-          resources:
-            requests:
-              memory: "256Mi"
-              cpu: "250m"
-            limits:
-              memory: "512Mi"
-              cpu: "500m"
-          livenessProbe:
-            httpGet:
-              path: /actuator/health
-              port: 8081
-            initialDelaySeconds: 120
-            periodSeconds: 30
-            timeoutSeconds: 5
-          readinessProbe:
-            httpGet:
-              path: /actuator/health
-              port: 8081
-            initialDelaySeconds: 90
-            periodSeconds: 10
-            timeoutSeconds: 5
+      - name: article-summarizer
+        image: jhonbrayansilvalaura/article-summarizer:latest
+        ports:
+        - containerPort: 8081
+          protocol: TCP
+        env:
+        # Variables desde ConfigMap (datos NO sensibles)
+        - name: DATABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: article-extractor-configmap
+              key: DATABASE_URL
+        - name: DATABASE_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: article-extractor-configmap
+              key: DATABASE_USERNAME
+        - name: RAPIDAPI_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: article-extractor-configmap
+              key: RAPIDAPI_HOST
+        - name: RAPIDAPI_BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: article-extractor-configmap
+              key: RAPIDAPI_BASE_URL
+
+        # Variables desde Secret (datos SENSIBLES)
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: article-extractor-secret
+              key: DATABASE_PASSWORD
+        - name: RAPIDAPI_KEY
+          valueFrom:
+            secretKeyRef:
+              name: article-extractor-secret
+              key: RAPIDAPI_KEY
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8081
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8081
+          initialDelaySeconds: 90
+          periodSeconds: 10
+          timeoutSeconds: 5

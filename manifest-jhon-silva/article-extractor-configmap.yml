@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: article-extractor-configmap
+  namespace: jhon-silva-38
+  labels:
+    app: article-summarizer
+    component: configmap
+data:
+  # Database Configuration (no sensible)
+  DATABASE_URL: "r2dbc:postgresql://ep-rough-violet-adi6ri0k-pooler.c-2.us-east-1.aws.neon.tech/ia_article_extractor?sslmode=require&channel_binding=require"
+  DATABASE_USERNAME: "neondb_owner"
+
+  # RapidAPI Configuration (no sensible)
+  RAPIDAPI_HOST: "article-extractor-and-summarizer.p.rapidapi.com"
+  RAPIDAPI_BASE_URL: "https://article-extractor-and-summarizer.p.rapidapi.com"
+
+  # Application Configuration
+  SERVER_PORT: "8081"
+  SPRING_APPLICATION_NAME: "article-summarizer"
